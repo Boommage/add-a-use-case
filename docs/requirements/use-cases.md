@@ -1474,6 +1474,10 @@ Details:
 
 **Extensions:**
 
+3a. The caller is neither the course admin who owns the student's course nor an instructor assigned to the student's course section, including another course's admin, an unassigned instructor, or any student (including the student herself):
+    1. The system denies the deactivation and informs the caller that she is not authorized (BR-student-lifecycle, BR-section-scoped-access, FR-SEC-deny-unauthorized).
+    2. The system makes no changes to the student's account or team assignment. Use case ends.
+
 6a. The student is assigned to a team:
     1. The system removes the student from her team as part of deactivation, preserving her previously submitted work (BR-student-lifecycle).
     2. Resume at step 6 to alert the course admin or instructor of the completed deactivation.
