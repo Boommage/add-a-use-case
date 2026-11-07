@@ -1473,12 +1473,19 @@ Details:
 7. Use case ends.
 
 **Extensions:**
+
+6a. The student is assigned to a team:
+    1. The system removes the student from her team as part of deactivation, preserving her previously submitted work (BR-student-lifecycle).
+    2. Resume at step 6 to alert the course admin or instructor of the completed deactivation.
+
 **Priority:** Low
 **Frequency of Use:** Rare. Occurs occasionally when a student withdraws from a course section.
 **Business Rules:** BR-student-lifecycle
 
 **Associated Information:**
 - Consequence of the deactivation: The student will no longer be able to log in or submit weekly activity reports and peer evaluations, but the student's account and her previously submitted work are kept in the system. Deactivation will NOT remove the student from the system, and the account can be reactivated in the future (UC-STU-reactivate-student: Reactivate a student). This is distinct from deletion (UC-STU-delete-student: Delete a student), which is a physical, unrecoverable delete. The course admin or instructor shall be able to cancel the use case at any time prior to submitting it.
+
+- Team and submission consequences: Deactivation removes any current team assignment (BR-student-lifecycle). While inactive, the student owes neither weekly activity reports nor peer evaluations and receives no reminders for those submissions; her former teammates no longer owe a peer evaluation of her under BR-submission-owed.
 
 **Related Use Cases:** UC-STU-delete-student: Delete a student; UC-STU-reactivate-student: Reactivate a student
 **Assumptions:**
