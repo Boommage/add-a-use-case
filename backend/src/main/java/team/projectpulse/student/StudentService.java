@@ -6,15 +6,23 @@ import team.projectpulse.system.UserUtils;
 import team.projectpulse.system.exception.ObjectNotFoundException;
 import team.projectpulse.user.userinvitation.UserInvitationService;
 import jakarta.transaction.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import team.projectpulse.team.Team;
+import team.projectpulse.system.WeekKeys;
+import team.projectpulse.system.exception.StudentAlreadyDeactivatedException;
+import org.springframework.security.access.AccessDeniedException;
 import java.util.List;
 import java.util.Map;
 
@@ -27,14 +35,22 @@ public class StudentService {
     private final UserInvitationService userInvitationService;
     private final PasswordEncoder passwordEncoder;
     private final UserUtils userUtils;
+    private final Clock clock;
+    private final EntityManager entityManager;
+    private final StudentTeamMembershipRepository membershipRepository;
+    private final StudentDeactivationRepository deactivationRepository;
 
 
-    public StudentService(StudentRepository studentRepository, SectionRepository sectionRepository, UserInvitationService userInvitationService, PasswordEncoder passwordEncoder, UserUtils userUtils) {
+    public StudentService(StudentRepository studentRepository, SectionRepository sectionRepository, UserInvitationService userInvitationService, PasswordEncoder passwordEncoder, UserUtils userUtils, Clock clock, StudentTeamMembershipRepository membershipRepository, StudentDeactivationRepository deactivationRepository, EntityManager entityManager) {
         this.studentRepository = studentRepository;
         this.sectionRepository = sectionRepository;
         this.userInvitationService = userInvitationService;
         this.passwordEncoder = passwordEncoder;
         this.userUtils = userUtils;
+        this.clock = clock;
+        this.entityManager = entityManager;
+        this.membershipRepository = membershipRepository;
+        this.deactivationRepository = deactivationRepository;
     }
 
     public Page<Student> findByCriteria(Map<String, String> searchCriteria, Pageable pageable) {
@@ -104,9 +120,50 @@ public class StudentService {
         return savedStudent;
     }
 
+    public Student deactivateStudent(Integer studentId) {
+        Student student = this.studentRepository.findForLifecycleUpdate(studentId, this.userUtils.getUserId(),
+                        this.userUtils.hasRole("ROLE_admin"), this.userUtils.hasRole("ROLE_instructor"))
+                .orElseThrow(() -> new AccessDeniedException("No permission to deactivate this student."));
+        // A route check may already have loaded this entity into the persistence context.
+        this.entityManager.refresh(student, LockModeType.PESSIMISTIC_WRITE);
+        if (!this.studentRepository.existsInLifecycleScope(studentId, this.userUtils.getUserId(),
+                this.userUtils.hasRole("ROLE_admin"), this.userUtils.hasRole("ROLE_instructor"))) {
+            throw new AccessDeniedException("No permission to deactivate this student.");
+        }
+        if (!student.isEnabled()) throw new StudentAlreadyDeactivatedException();
+        LocalDateTime now = LocalDateTime.now(this.clock.withZone(ZoneOffset.UTC));
+        this.deactivationRepository.save(new StudentDeactivation(student, now, WeekKeys.of(LocalDate.now(this.clock))));
+        closeMemberships(student, now);
+        if (student.getTeam() != null) student.getTeam().removeStudent(student);
+        student.setEnabled(false);
+        return this.studentRepository.save(student);
+    }
+
+    /** The caller holds the student's write lock; history and assignment share its transaction. */
+    public void recordMembershipTransition(Student student, Team target) {
+        LocalDateTime now = LocalDateTime.now(this.clock.withZone(ZoneOffset.UTC));
+        closeMemberships(student, now);
+        if (target != null) {
+            this.membershipRepository.save(new StudentTeamMembership(student, target, student.getSection(), now));
+        }
+    }
+
+    private void closeMemberships(Student student, LocalDateTime now) {
+        this.membershipRepository.findByStudentIdAndLeftAtIsNull(student.getId()).forEach(m -> m.close(now));
+    }
+
     public Student updateStudent(Integer studentId, Student update) {
-        Student oldStudent = this.studentRepository.findById(studentId)
+        Student oldStudent = this.studentRepository.findForUpdate(studentId)
                 .orElseThrow(() -> new ObjectNotFoundException("student", studentId));
+
+        this.entityManager.refresh(oldStudent, LockModeType.PESSIMISTIC_WRITE);
+        if (oldStudent.isEnabled() && !update.isEnabled()) {
+            if (!this.studentRepository.existsInLifecycleScope(studentId, this.userUtils.getUserId(),
+                    this.userUtils.hasRole("ROLE_admin"), this.userUtils.hasRole("ROLE_instructor"))) {
+                throw new AccessDeniedException("No permission to deactivate this student.");
+            }
+            throw new IllegalArgumentException("Student deactivation requires the deactivation endpoint. No changes were saved.");
+        }
 
         // If the user is not an admin, then the user can only update her username, first rubricName, last rubricName, and email
         oldStudent.setUsername(update.getUsername());
@@ -114,10 +171,8 @@ public class StudentService {
         oldStudent.setLastName(update.getLastName());
         oldStudent.setEmail(update.getEmail());
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        // If the user is an admin, then the user can update all the fields
-        if (authentication.getAuthorities().stream().anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_instructor"))) {
+        // Reactivation retains the existing profile-update behavior.
+        if (this.userUtils.hasRole("ROLE_instructor")) {
             oldStudent.setEnabled(update.isEnabled());
 //            oldStudent.setRoles(update.getRoles());
         }

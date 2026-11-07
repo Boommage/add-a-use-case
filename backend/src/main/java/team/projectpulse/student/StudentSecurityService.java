@@ -26,6 +26,14 @@ public class StudentSecurityService {
         this.userUtils = userUtils;
     }
 
+    public boolean mayManageLifecycle(Integer studentId) {
+        if (studentId == null) return false;
+        boolean admin = this.userUtils.hasRole("ROLE_admin");
+        boolean instructor = this.userUtils.hasRole("ROLE_instructor");
+        if (!admin && !instructor) return false;
+        return this.studentRepository.existsInLifecycleScope(studentId, this.userUtils.getUserId(), admin, instructor);
+    }
+
     public boolean isStudentSelf(Integer studentId) {
         Integer studentIdFromJwt = this.userUtils.getUserId();
         return studentId.equals(studentIdFromJwt);

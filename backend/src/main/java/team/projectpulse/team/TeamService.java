@@ -6,9 +6,12 @@ import team.projectpulse.section.Section;
 import team.projectpulse.section.SectionRepository;
 import team.projectpulse.student.Student;
 import team.projectpulse.student.StudentRepository;
+import team.projectpulse.student.StudentService;
 import team.projectpulse.system.UserUtils;
 import team.projectpulse.system.exception.ObjectNotFoundException;
 import jakarta.transaction.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -29,14 +32,18 @@ public class TeamService {
     private final InstructorRepository instructorRepository;
     private final UserUtils userUtils;
     private final SectionRepository sectionRepository;
+    private final StudentService studentService;
+    private final EntityManager entityManager;
 
 
-    public TeamService(TeamRepository teamRepository, StudentRepository studentRepository, InstructorRepository instructorRepository, UserUtils userUtils, SectionRepository sectionRepository) {
+    public TeamService(TeamRepository teamRepository, StudentRepository studentRepository, InstructorRepository instructorRepository, UserUtils userUtils, SectionRepository sectionRepository, StudentService studentService, EntityManager entityManager) {
         this.teamRepository = teamRepository;
         this.studentRepository = studentRepository;
         this.instructorRepository = instructorRepository;
         this.userUtils = userUtils;
         this.sectionRepository = sectionRepository;
+        this.studentService = studentService;
+        this.entityManager = entityManager;
     }
 
     public Page<Team> findByCriteria(Map<String, String> searchCriteria, Pageable pageable) {
@@ -83,13 +90,18 @@ public class TeamService {
         Team team = this.teamRepository.findById(teamId)
                 .orElseThrow(() -> new ObjectNotFoundException("team", teamId));
 
-        Student student = this.studentRepository.findById(studentId)
+        Student student = this.studentRepository.findForUpdate(studentId)
                 .orElseThrow(() -> new ObjectNotFoundException("student", studentId));
 
-        // AssignStudentToTeamAuthorizationManager would have already checked if the student and team are in the same section
+        this.entityManager.refresh(student, LockModeType.PESSIMISTIC_WRITE);
+        // Recheck against the locked row: assignment may race with deactivation or transfer.
+        if (!student.getSection().getSectionId().equals(team.getSection().getSectionId())) {
+            throw new IllegalArgumentException("Student and team must belong to the same course section.");
+        }
 
         // Check if the student is already on the team
-        if (!team.getStudents().contains(student)) {
+        if (student.getTeam() == null || !teamId.equals(student.getTeam().getTeamId())) {
+            this.studentService.recordMembershipTransition(student, team);
             // Remove the student from the team if the student is already assigned to another team
             if (student.getTeam() != null) {
                 student.getTeam().removeStudent(student);
@@ -102,11 +114,13 @@ public class TeamService {
         Team team = this.teamRepository.findById(teamId)
                 .orElseThrow(() -> new ObjectNotFoundException("team", teamId));
 
-        Student student = this.studentRepository.findById(studentId)
+        Student student = this.studentRepository.findForUpdate(studentId)
                 .orElseThrow(() -> new ObjectNotFoundException("student", studentId));
 
+        this.entityManager.refresh(student, LockModeType.PESSIMISTIC_WRITE);
         // Check if the student is on the team
-        if (team.getStudents().contains(student)) {
+        if (student.getTeam() != null && teamId.equals(student.getTeam().getTeamId())) {
+            this.studentService.recordMembershipTransition(student, null);
             team.removeStudent(student);
         }
     }
@@ -151,7 +165,7 @@ public class TeamService {
         // Transfer all students in this team to the new section as well
         List<Student> teamStudents = new ArrayList<>(team.getStudents());
         for (Student student : teamStudents) {
-            this.transferStudent(student, oldSection, newSection);
+            this.transferStudent(student, team, oldSection, newSection);
         }
 
         // Assign this team a new instructor from the new section if the current instructor is not teaching the new section
@@ -187,7 +201,11 @@ public class TeamService {
         team.setSection(to);
     }
 
-    public void transferStudent(Student student, Section from, Section to) {
+    private void transferStudent(Student student, Team expectedTeam, Section from, Section to) {
+        student = this.studentRepository.findForUpdate(student.getId())
+                .orElseThrow(() -> new IllegalStateException("Student no longer exists."));
+        this.entityManager.refresh(student, LockModeType.PESSIMISTIC_WRITE);
+        if (student.getTeam() == null || !expectedTeam.getTeamId().equals(student.getTeam().getTeamId())) return;
         if (student.getSection() != from) {
             throw new IllegalStateException("Student is not in the expected old section.");
         }
@@ -198,6 +216,7 @@ public class TeamService {
 
         // owning side update (the real FK change)
         student.setSection(to);
+        this.studentService.recordMembershipTransition(student, student.getTeam());
     }
 
 }

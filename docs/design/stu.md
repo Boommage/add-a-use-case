@@ -3,7 +3,7 @@
 > Realizes: [UC-STU-deactivate-student](../requirements/use-cases.md#uc-stu-deactivate-student-the-course-admininstructor-deactivates-a-student).
 > Depends on FRs: FR-SEC-authentication, FR-SEC-authorization, FR-SEC-deny-unauthorized, FR-SEC-active-account in the [SRS](../requirements/software-requirements-specification.md).
 > Governing rules: BR-student-lifecycle, BR-section-scoped-access, BR-team-admin-only, BR-submission-owed, BR-evaluation-submission-window, BR-evaluation-editable-until-close in [business rules](../requirements/business-rules.md).
-> Status: approved design-of-record, merged in PR #2 (merge commit `709a119`). Ready for implementation; no implementation is claimed.
+> Status: approved design-of-record, merged in PR #2 (merge commit `709a119`). Implementation in progress: the shared lifecycle/history layer is prepared; endpoint, authentication, evaluation, and frontend work remain.
 
 ## Overview
 
@@ -231,7 +231,7 @@ erDiagram
 
 Membership intervals are half-open: joined_at inclusive, left_at exclusive; null left_at means current membership. A participant's interval intersects the requested ISO week's date range. Membership maintenance must cover assignment, reassignment, removal, and deactivation; reactivation does not erase history. Store a departure even for a student without a team (former_team_id nullable). Deactivation history is append-only across repeated lifecycle transitions, not overwritten by reactivation.
 
-Use the injected application Clock and WeekKeys for calendar time/cutoffs, including year boundaries. For the previous-week exception, resolve former team participation at departure and membership in the evaluated week; do not admit an unrelated evaluator. Preserve all previously submitted evaluation rows; deactivation never cascades deletion into work/history.
+Use the injected application Clock and WeekKeys for calendar time/cutoffs, including year boundaries. Persist history timestamps in UTC so migration backfill and application writes share a timezone; derive cutoff weeks and evaluated-week boundaries in app.timezone. Backfill existing assignments only at the migration boundary, with matching dev seed rows. Assignment/removal and course section transfer take the same student write lock as deactivation and maintain membership intervals; refresh locked entities to avoid stale state loaded by route checks. For the previous-week exception, resolve former team participation at departure and membership in the evaluated week; do not admit an unrelated evaluator. Preserve all previously submitted evaluation rows; deactivation never cascades deletion into work/history.
 
 ## Reuse & cross-cutting
 
