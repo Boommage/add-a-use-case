@@ -1458,7 +1458,7 @@ Details:
 
 **Preconditions:**
 - PRE-1. The course admin or instructor is logged into the system.
-- PRE-2. There exists at least one active student in the system.
+- PRE-2. The student to be deactivated has an active account.
 
 **Postconditions:**
 - POST-1. The student's account is deactivated.
@@ -1473,12 +1473,33 @@ Details:
 7. Use case ends.
 
 **Extensions:**
+
+3a. The caller is neither the course admin who owns the student's course nor an instructor assigned to the student's course section, including another course's admin, an unassigned instructor, or any student (including the student herself):
+    1. The system denies the deactivation and informs the caller that she is not authorized (BR-student-lifecycle, BR-section-scoped-access, FR-SEC-deny-unauthorized).
+    2. The system makes no changes to the student's account or team assignment. Use case ends.
+
+4a. The course admin or instructor cancels or dismisses the deactivation confirmation:
+    1. The system cancels the deactivation without changing the student's account or team assignment.
+    2. Use case ends.
+
+6a. The student is assigned to a team:
+    1. The system removes the student from her team as part of deactivation, preserving her previously submitted work (BR-student-lifecycle).
+    2. Resume at step 6 to alert the course admin or instructor of the completed deactivation.
+
+6b. The student is already deactivated, including when another authorized user deactivates her after her details were loaded:
+    1. The system rejects the deactivation and informs the course admin or instructor that the student is already deactivated and cannot be deactivated again until she is reactivated.
+    2. The system makes no changes to the student's account or team assignment. Use case ends.
+
 **Priority:** Low
 **Frequency of Use:** Rare. Occurs occasionally when a student withdraws from a course section.
 **Business Rules:** BR-student-lifecycle
 
 **Associated Information:**
 - Consequence of the deactivation: The student will no longer be able to log in or submit weekly activity reports and peer evaluations, but the student's account and her previously submitted work are kept in the system. Deactivation will NOT remove the student from the system, and the account can be reactivated in the future (UC-STU-reactivate-student: Reactivate a student). This is distinct from deletion (UC-STU-delete-student: Delete a student), which is a physical, unrecoverable delete. The course admin or instructor shall be able to cancel the use case at any time prior to submitting it.
+
+- Team and submission consequences: Deactivation removes any current team assignment (BR-student-lifecycle). While inactive, the student owes neither weekly activity reports nor peer evaluations and receives no reminders for those submissions; her former teammates no longer owe a peer evaluation of her under BR-submission-owed.
+
+- Peer evaluation consequences: Former teammates may submit and edit evaluations of the student for the week immediately preceding deactivation until its normal submission window closes (BR-student-lifecycle, BR-evaluation-submission-window, BR-evaluation-editable-until-close). For the week of deactivation and later weeks while she remains inactive, her name remains visible and marked inactive in the evaluation entry view, with no evaluation controls available. Course section reports retain her historical evaluations for the weeks before deactivation and any evaluations already submitted for the week of deactivation. Authorized instructors may still open those details; historical report inclusion follows participation in the evaluated week, not current team membership or the existence of submitted evaluations. A student who belonged to a team during the evaluated week remains listed even when no evaluations of her were submitted; submitted evaluations determine which results appear.
 
 **Related Use Cases:** UC-STU-delete-student: Delete a student; UC-STU-reactivate-student: Reactivate a student
 **Assumptions:**
@@ -2233,7 +2254,7 @@ Report generating algorithm: N/A
 **Associated Information:**
 
 Details:
-- Every team member MUST be evaluated.
+- Every active team member MUST be evaluated. The previous-week exception for a deactivated former teammate follows BR-student-lifecycle: submission and editing remain permitted until that week's normal window closes. For the week of deactivation and later weeks while she remains inactive, show her name as inactive without evaluation controls.
 - Scores MUST be integers.
 
 Example (each team member, self included, is evaluated on every rubric criterion):
@@ -2363,6 +2384,8 @@ An example of the generated report:
 | Lily Fisher | … | … | … | … |
 
 The report shall show who did not turn in the peer evaluation for that week, meaning the students who owe it (BR-submission-owed).
+
+Historical inclusion after deactivation: Use participation in the evaluated week to determine whether the student appears, and submitted evaluations to determine which results appear. A student who belonged to a team during the evaluated week remains listed even when no evaluations of her were submitted, regardless of her current account status or team membership. Retain evaluations already submitted for the week of deactivation. Authorized instructors may still open retained evaluation details. Deactivation does not create evaluation results for the week of deactivation or later weeks while she remains inactive.
 
 Report generating algorithm: How to compute the peer evaluation grade for a student? Each student receives multiple peer evaluations from her teammates every week. First, obtain the peer evaluations received by a student for that week. For each peer evaluation, compute a total score by adding up the individual criterion scores. Then compute the average of the total scores across the peer evaluations. For example, John Doe receives two peer evaluations from Tim Smith and Lily Fisher, respectively. Tim Smith gives the following scores based on the rubric: 10, 9, 10, 9, 10, 10. So the total score given by Tim is 58. Lily Fisher gives the following scores based on the rubric: 5, 5, 10, 10, 10, 10. So the total score given by Tim is 50. The grade that John Doe receives that week is (58 + 50) / 2 = 54.
 
