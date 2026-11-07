@@ -1458,7 +1458,7 @@ Details:
 
 **Preconditions:**
 - PRE-1. The course admin or instructor is logged into the system.
-- PRE-2. There exists at least one active student in the system.
+- PRE-2. The student to be deactivated has an active account.
 
 **Postconditions:**
 - POST-1. The student's account is deactivated.
@@ -1477,6 +1477,10 @@ Details:
 6a. The student is assigned to a team:
     1. The system removes the student from her team as part of deactivation, preserving her previously submitted work (BR-student-lifecycle).
     2. Resume at step 6 to alert the course admin or instructor of the completed deactivation.
+
+6b. The student is already deactivated, including when another authorized user deactivates her after her details were loaded:
+    1. The system rejects the deactivation and informs the course admin or instructor that the student is already deactivated and cannot be deactivated again until she is reactivated.
+    2. The system makes no changes to the student's account or team assignment. Use case ends.
 
 **Priority:** Low
 **Frequency of Use:** Rare. Occurs occasionally when a student withdraws from a course section.
