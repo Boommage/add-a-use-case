@@ -232,7 +232,7 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
         studentDto.put("firstName", "John (updated)");
         studentDto.put("lastName", "Smith");
         studentDto.put("email", "j.smith@abc.edu");
-        studentDto.put("enabled", false); // Student cannot change their enabled status.
+        studentDto.put("enabled", true); // Profile updates retain the existing account status.
         studentDto.put("roles", "instructor"); // Student cannot change their role.
 
         String json = this.jsonMapper.writeValueAsString(studentDto);

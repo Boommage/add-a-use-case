@@ -23,6 +23,8 @@ import team.projectpulse.ram.usecase.*;
 import team.projectpulse.rubric.*;
 import team.projectpulse.section.Section;
 import team.projectpulse.student.Student;
+import team.projectpulse.student.StudentTeamMembership;
+import team.projectpulse.student.StudentTeamMembershipRepository;
 import team.projectpulse.team.Team;
 import team.projectpulse.user.PeerEvaluationUser;
 import team.projectpulse.user.userinvitation.UserInvitation;
@@ -52,9 +54,11 @@ public class DataInitializer implements CommandLineRunner {
     private final DocumentTemplateRegistry documentTemplateRegistry;
     private final DocumentRepository documentRepository;
     private final CommentThreadRepository commentThreadRepository;
+    private final StudentTeamMembershipRepository membershipRepository;
+    private final Clock clock;
 
 
-    public DataInitializer(CourseRepository courseRepository, InstructorRepository instructorRepository, PeerEvaluationRepository peerEvaluationRepository, ActivityRepository activityRepository, PasswordEncoder passwordEncoder, UserInvitationRepository userInvitationRepository, RequirementArtifactService requirementArtifactService, ArtifactLinkRepository artifactLinkRepository, UseCaseService useCaseService, DocumentTemplateRegistry documentTemplateRegistry, DocumentRepository documentRepository, CommentThreadRepository commentThreadRepository) {
+    public DataInitializer(CourseRepository courseRepository, InstructorRepository instructorRepository, PeerEvaluationRepository peerEvaluationRepository, ActivityRepository activityRepository, PasswordEncoder passwordEncoder, UserInvitationRepository userInvitationRepository, RequirementArtifactService requirementArtifactService, ArtifactLinkRepository artifactLinkRepository, UseCaseService useCaseService, DocumentTemplateRegistry documentTemplateRegistry, DocumentRepository documentRepository, CommentThreadRepository commentThreadRepository, StudentTeamMembershipRepository membershipRepository, Clock clock) {
         this.courseRepository = courseRepository;
         this.instructorRepository = instructorRepository;
         this.peerEvaluationRepository = peerEvaluationRepository;
@@ -67,6 +71,8 @@ public class DataInitializer implements CommandLineRunner {
         this.documentTemplateRegistry = documentTemplateRegistry;
         this.documentRepository = documentRepository;
         this.commentThreadRepository = commentThreadRepository;
+        this.membershipRepository = membershipRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -260,6 +266,18 @@ public class DataInitializer implements CommandLineRunner {
 
         // Step 3: Save all courses (which will cascade to sections, criteria, rubrics, teams, and students)
         this.courseRepository.saveAll(List.of(course1, course2, course3));
+
+        // Current assignments are evidenced at this boundary, not for arbitrary prior weeks.
+        LocalDateTime membershipBoundary = LocalDateTime.now(this.clock.withZone(ZoneOffset.UTC));
+        for (Course course : List.of(course1, course2, course3)) {
+            for (Section section : course.getSections()) {
+                for (Student student : section.getStudents()) {
+                    if (student.getTeam() != null) {
+                        this.membershipRepository.save(new StudentTeamMembership(student, student.getTeam(), section, membershipBoundary));
+                    }
+                }
+            }
+        }
 
         // Update instructor default references after courses are persisted
         this.instructorRepository.saveAll(List.of(instructor1, instructor2, instructor3));

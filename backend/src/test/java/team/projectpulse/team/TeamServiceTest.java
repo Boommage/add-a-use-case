@@ -7,6 +7,7 @@ import team.projectpulse.section.Section;
 import team.projectpulse.section.SectionRepository;
 import team.projectpulse.student.Student;
 import team.projectpulse.student.StudentRepository;
+import team.projectpulse.student.StudentService;
 import team.projectpulse.system.UserUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,12 @@ class TeamServiceTest {
     SectionRepository sectionRepository;
     @Mock
     UserUtils userUtils;
+
+    @Mock
+    StudentService studentService;
+
+    @Mock
+    jakarta.persistence.EntityManager entityManager;
 
     @InjectMocks
     TeamService teamService;
@@ -114,6 +121,9 @@ class TeamServiceTest {
         section2.addTeam(team3);
         team3.addInstructor(instructor1);
 
+        team1.setTeamId(1);
+        team2.setTeamId(2);
+        team3.setTeamId(3);
         this.teams = List.of(team1, team2, team3);
 
         // Create students
@@ -122,6 +132,8 @@ class TeamServiceTest {
         Student jerry = new Student("jerry", "Jerry", "Moon", "j.moon@abc.edu", "123456", true, "student");
         Student woody = new Student("woody", "Woody", "Allen", "w.allen@abc.edu", "123456", true, "student");
 
+        john.setId(1);
+        eric.setId(2);
         this.students = List.of(john, eric, jerry, woody);
 
         section2.addStudent(john);
@@ -208,9 +220,10 @@ class TeamServiceTest {
     void testAssignStudentToTeam() {
         // Given
         Student jerry = this.students.get(2);
+        jerry.setSection(this.sections.get(1));
         Team team1 = this.teams.get(0);
         given(this.teamRepository.findById(1)).willReturn(Optional.ofNullable(team1));
-        given(this.studentRepository.findById(3)).willReturn(Optional.ofNullable(jerry)); // Jerry
+        given(this.studentRepository.findForUpdate(3)).willReturn(Optional.ofNullable(jerry)); // Jerry
 
         // When
         this.teamService.assignStudentToTeam(1, 3);
@@ -219,6 +232,7 @@ class TeamServiceTest {
         assertThat(team1.getStudents().size()).isEqualTo(3);
         assertThat(team1.getStudents().get(2).getFirstName()).isEqualTo("Jerry");
         assertThat(jerry.getTeam()).isEqualTo(team1);
+        verify(this.studentService).recordMembershipTransition(jerry, team1);
 
     }
 
@@ -228,7 +242,7 @@ class TeamServiceTest {
         Student john = this.students.get(0);
         Team team1 = this.teams.get(0);
         given(this.teamRepository.findById(1)).willReturn(Optional.of(team1));
-        given(this.studentRepository.findById(1)).willReturn(Optional.of(john)); // John
+        given(this.studentRepository.findForUpdate(1)).willReturn(Optional.of(john)); // John
 
         // When
         this.teamService.removeStudentFromTeam(1, 1);
@@ -236,6 +250,7 @@ class TeamServiceTest {
         // Then
         assertThat(team1.getStudents().size()).isEqualTo(1);
         assertThat(john.getTeam()).isNull();
+        verify(this.studentService).recordMembershipTransition(john, null);
     }
 
     @Test
@@ -260,6 +275,8 @@ class TeamServiceTest {
         Section newSection = this.sections.get(0); // Section 1
         Team team1 = this.teams.get(0); // Team 1 in Section 2 with instructor1 and two students
         Instructor oldInstructor = team1.getInstructor();
+        given(this.studentRepository.findForUpdate(1)).willReturn(Optional.of(this.students.get(0)));
+        given(this.studentRepository.findForUpdate(2)).willReturn(Optional.of(this.students.get(1)));
         given(this.teamRepository.findById(1)).willReturn(Optional.of(team1));
         given(this.sectionRepository.findById(1)).willReturn(Optional.of(newSection));
 
@@ -280,6 +297,8 @@ class TeamServiceTest {
         Section newSection = this.sections.get(2); // Section 3
         Team team1 = this.teams.get(0); // Team 1 in Section 2 with instructor1 and two students
         Instructor oldInstructor = team1.getInstructor(); // Old instructor is Bingyang Wei
+        given(this.studentRepository.findForUpdate(1)).willReturn(Optional.of(this.students.get(0)));
+        given(this.studentRepository.findForUpdate(2)).willReturn(Optional.of(this.students.get(1)));
         given(this.teamRepository.findById(1)).willReturn(Optional.of(team1));
         given(this.sectionRepository.findById(3)).willReturn(Optional.of(newSection));
 
