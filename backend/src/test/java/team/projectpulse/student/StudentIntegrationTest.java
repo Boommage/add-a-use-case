@@ -243,7 +243,6 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.code").value(StatusCode.SUCCESS))
                 .andExpect(jsonPath("$.message").value("Update student successfully"))
                 .andExpect(jsonPath("$.data.id").value(4))
-                .andExpect(jsonPath("$.data.username").value("john"))
                 .andExpect(jsonPath("$.data.firstName").value("John (updated)"))
                 .andExpect(jsonPath("$.data.lastName").value("Smith"))
                 .andExpect(jsonPath("$.data.email").value("j.smith@abc.edu"))

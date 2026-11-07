@@ -1,0 +1,1017 @@
+{
+  "date": "2026-11-06",
+  "original_audited_cases": 27,
+  "retained_audited_cases": 28,
+  "baseline": [
+    {
+      "test_class": "StudentLifecycleServiceTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "test_class": "StudentLifecyclePersistenceIntegrationTest",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "test_class": "StudentServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "test_class": "TeamServiceTest",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "test_class": "StudentIntegrationTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "production_files_unchanged": 295,
+  "mutations": [
+    {
+      "name": "M01_account_remains_active",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 81.1,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#deactivationRetainsIdentityAndSectionButClosesMembershipAndRemovesTeam,StudentLifecyclePersistenceIntegrationTest#owningAdminDeactivatesWithoutDeletingWorkOrCourseSection+assignedInstructorCanDeactivate+noTeamDepartureIsStillRecorded",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        student.setEnabled(false);",
+          "        student.setEnabled(true);",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.deactivationRetainsIdentityAndSectionButClosesMembershipAndRemovesTeam",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.noTeamDepartureIsStillRecorded",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.owningAdminDeactivatesWithoutDeletingWorkOrCourseSection",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.assignedInstructorCanDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        }
+      ]
+    },
+    {
+      "name": "M02_keep_current_team",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.8,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#deactivationRetainsIdentityAndSectionButClosesMembershipAndRemovesTeam",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        if (student.getTeam() != null) student.getTeam().removeStudent(student);",
+          "        // Mutant: current team is retained.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.deactivationRetainsIdentityAndSectionButClosesMembershipAndRemovesTeam",
+          "outcome": "failure",
+          "message": "\nexpected: null\n but was: team.projectpulse.team.Team@67d32a54"
+        }
+      ]
+    },
+    {
+      "name": "M03_omit_departure",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 80.9,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#noTeamDepartureIsStillRecorded",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        this.deactivationRepository.save(new StudentDeactivation(student, now, WeekKeys.of(LocalDate.now(this.clock))));",
+          "        // Mutant: no departure record.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.noTeamDepartureIsStillRecorded",
+          "outcome": "failure",
+          "message": "\nExpected size: 1 but was: 0 in:\n[]"
+        }
+      ]
+    },
+    {
+      "name": "M04_corrupt_retained_work",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 82.8,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#owningAdminDeactivatesWithoutDeletingWorkOrCourseSection",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        student.setEnabled(false);",
+          "        this.entityManager.createQuery(\"update Activity a set a.description = 'CORRUPTED' where a.student.id = :id\").setParameter(\"id\", studentId).executeUpdate();\n        this.entityManager.createQuery(\"update PeerEvaluation p set p.publicComment = 'CORRUPTED' where p.evaluator.id = :id or p.evaluatee.id = :id\").setParameter(\"id\", studentId).executeUpdate();\n        student.setEnabled(false);",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.owningAdminDeactivatesWithoutDeletingWorkOrCourseSection",
+          "outcome": "failure",
+          "message": "\nexpected: Work[activities=[{activity_id=1, actual_hours=10.5, planned_hours=12.0, status=0, student_id=4, team_team_id=1, created_at=2023-08-20T23:30, updated_at=2023-08-20T23:30, activity=Develop Login Feature, comments=null, description=Implement login functionality for the application, week=2023-W31, category=DEVELOPMENT}, {activity_id=2, actual_hours=9.0, planned_hours=8.0, status=1, student_id=4, team_team_id=1, created_at=2023-08-20T23:30, updated_at=2023-08-20T23:30, activity=Unit Testing for Login, comments=null, description=Write and execute unit tests for the login, week=2023-W32, category=TESTING}, {activity_id=9, actual_hours=7.0, planned_hours=8.0, status=1, student_id=4, team_team_id=1, created_at=2023-08-20T23:30, updated_at=2023-08-20T23:30, activity=Test Payment Integration, comments=null, description=Perform unit and integration testing for the payment module, week=202"
+        }
+      ]
+    },
+    {
+      "name": "M05_allow_duplicate_deactivation",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 80.6,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#alreadyInactiveIsConflictWithoutAnotherDeparture,StudentLifecyclePersistenceIntegrationTest#secondDeactivationCannotAppendAnotherDeparture",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        if (!student.isEnabled()) throw new StudentAlreadyDeactivatedException();",
+          "        // Mutant: repeated deactivation accepted.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.alreadyInactiveIsConflictWithoutAnotherDeparture",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.secondDeactivationCannotAppendAnotherDeparture",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        }
+      ]
+    },
+    {
+      "name": "M06_allow_profile_deactivation",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 7.2,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#authorizedProfileBypassRejectsEntireUpdate+unauthorizedProfileBypassIsForbiddenBeforeProfileMutation",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "if (oldStudent.isEnabled() && !update.isEnabled()) {",
+          "if (false) {",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.authorizedProfileBypassRejectsEntireUpdate",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.unauthorizedProfileBypassIsForbiddenBeforeProfileMutation",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        }
+      ]
+    },
+    {
+      "name": "M07_write_profile_before_refusal",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.3,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#authorizedProfileBypassRejectsEntireUpdate+unauthorizedProfileBypassIsForbiddenBeforeProfileMutation",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        if (oldStudent.isEnabled() && !update.isEnabled()) {",
+          "        oldStudent.setFirstName(update.getFirstName());\n        if (oldStudent.isEnabled() && !update.isEnabled()) {",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.authorizedProfileBypassRejectsEntireUpdate",
+          "outcome": "failure",
+          "message": "\nexpected: \"Jane\"\n but was: \"Changed\""
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.unauthorizedProfileBypassIsForbiddenBeforeProfileMutation",
+          "outcome": "failure",
+          "message": "\nexpected: \"Jane\"\n but was: \"Changed\""
+        }
+      ]
+    },
+    {
+      "name": "M08_use_utc_cutoff_week",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.4,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#cutoffUsesCourseTimezoneWhileHistoryTimestampUsesUtc",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "WeekKeys.of(LocalDate.now(this.clock))",
+          "WeekKeys.of(LocalDate.now(this.clock.withZone(ZoneOffset.UTC)))",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.cutoffUsesCourseTimezoneWhileHistoryTimestampUsesUtc",
+          "outcome": "failure",
+          "message": "\nexpected: \"2026-W53\"\n but was: \"2027-W01\""
+        }
+      ]
+    },
+    {
+      "name": "M09_store_local_history_timestamp",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.4,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#cutoffUsesCourseTimezoneWhileHistoryTimestampUsesUtc",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "LocalDateTime.now(this.clock.withZone(ZoneOffset.UTC))",
+          "LocalDateTime.now(this.clock)",
+          2
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.cutoffUsesCourseTimezoneWhileHistoryTimestampUsesUtc",
+          "outcome": "failure",
+          "message": "\nexpected: 2027-01-04T01:00 (java.time.LocalDateTime)\n but was: 2027-01-03T19:00 (java.time.LocalDateTime)\nwhen comparing values using 'ChronoLocalDateTime.timeLineOrder()'"
+        }
+      ]
+    },
+    {
+      "name": "M10_ignore_iso_week_year",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.2,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#deactivationRetainsIdentityAndSectionButClosesMembershipAndRemovesTeam",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "WeekKeys.of(LocalDate.now(this.clock))",
+          "\"2027-W01\"",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.deactivationRetainsIdentityAndSectionButClosesMembershipAndRemovesTeam",
+          "outcome": "failure",
+          "message": "\nexpected: \"2026-W53\"\n but was: \"2027-W01\""
+        }
+      ]
+    },
+    {
+      "name": "M11_do_not_close_intervals",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.1,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#removalClosesMembershipWithoutCreatingAnotherInterval",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        this.membershipRepository.findByStudentIdAndLeftAtIsNull(student.getId()).forEach(m -> m.close(now));",
+          "        // Mutant: open intervals left open.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.removalClosesMembershipWithoutCreatingAnotherInterval",
+          "outcome": "failure",
+          "message": "\nexpected: 2027-01-01T12:00 (java.time.LocalDateTime)\n but was: null"
+        }
+      ]
+    },
+    {
+      "name": "M12_allow_negative_interval",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.1,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#membershipCannotEndBeforeItStarts",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentTeamMembership.java",
+          "this.leftAt != null || leftAt.isBefore(this.joinedAt)",
+          "this.leftAt != null",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.membershipCannotEndBeforeItStarts",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        }
+      ]
+    },
+    {
+      "name": "M13_rewrite_closed_interval",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.0,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecycleServiceTest#closedMembershipCannotBeRewritten",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentTeamMembership.java",
+          "this.leftAt != null || leftAt.isBefore(this.joinedAt)",
+          "leftAt.isBefore(this.joinedAt)",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecycleServiceTest.closedMembershipCannotBeRewritten",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        }
+      ]
+    },
+    {
+      "name": "M14_ignore_profile_first_name",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 81.5,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentServiceTest#testStudentUpdateOwnInfo+testInstructorUpdatesStudent,StudentIntegrationTest#testStudentJohnUpdatesOwnInfo",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        oldStudent.setFirstName(update.getFirstName());",
+          "        // Mutant: first name update ignored.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentServiceTest.testStudentUpdateOwnInfo",
+          "outcome": "failure",
+          "message": "\nexpected: \"Updated\"\n but was: \"John\""
+        },
+        {
+          "test": "team.projectpulse.student.StudentServiceTest.testInstructorUpdatesStudent",
+          "outcome": "failure",
+          "message": "\nexpected: \"Updated\"\n but was: \"John\""
+        },
+        {
+          "test": "team.projectpulse.student.StudentIntegrationTest.testStudentJohnUpdatesOwnInfo",
+          "outcome": "failure",
+          "message": "JSON path \"$.data.firstName\" expected:<John (updated)> but was:<John>",
+          "reported_test": "Integration tests for Student API endpoints.testStudentJohnUpdatesOwnInfo"
+        }
+      ]
+    },
+    {
+      "name": "M15_no_instructor_reactivation",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 7.2,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentServiceTest#testInstructorUpdatesStudent",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        if (this.userUtils.hasRole(\"ROLE_instructor\")) {",
+          "        if (false) {",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentServiceTest.testInstructorUpdatesStudent",
+          "outcome": "failure",
+          "message": "\nExpecting value to be true but was false"
+        }
+      ]
+    },
+    {
+      "name": "M16_ignore_team_assignment",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 7.1,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=TeamServiceTest#testAssignStudentToTeam",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/team/TeamService.java",
+          "            team.addStudent(student);",
+          "            // Mutant: assignment omitted.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.team.TeamServiceTest.testAssignStudentToTeam",
+          "outcome": "failure",
+          "message": "\nexpected: 3\n but was: 2"
+        }
+      ]
+    },
+    {
+      "name": "M17_ignore_team_removal",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 7.1,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=TeamServiceTest#testRemoveStudentFromTeam",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/team/TeamService.java",
+          "            team.removeStudent(student);",
+          "            // Mutant: removal omitted.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.team.TeamServiceTest.testRemoveStudentFromTeam",
+          "outcome": "failure",
+          "message": "\nexpected: 1\n but was: 2"
+        }
+      ]
+    },
+    {
+      "name": "M18_ignore_student_section_transfer",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 8.3,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=TeamServiceTest#testTransferTeamToAnotherSectionSuccessWithSameInstructor+testTransferTeamToAnotherSectionSuccessWithDifferentInstructor",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/team/TeamService.java",
+          "        student.setSection(to);",
+          "        // Mutant: student stays in old course section.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.team.TeamServiceTest.testTransferTeamToAnotherSectionSuccessWithSameInstructor",
+          "outcome": "failure",
+          "message": "\nexpected: team.projectpulse.section.Section@3fd05b3e\n but was: team.projectpulse.section.Section@4a481728"
+        },
+        {
+          "test": "team.projectpulse.team.TeamServiceTest.testTransferTeamToAnotherSectionSuccessWithDifferentInstructor",
+          "outcome": "failure",
+          "message": "\nexpected: team.projectpulse.section.Section@77c3c037\n but was: team.projectpulse.section.Section@29f38091"
+        }
+      ]
+    },
+    {
+      "name": "M19_skip_history_on_team_transitions",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 87.5,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#reassignmentClosesCurrentIntervalAndPreservesPersistedHistory+removalClosesCurrentIntervalAndPreservesPersistedHistory+sectionTransferClosesOldSectionIntervalAndPreservesPersistedHistory",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/team/TeamService.java",
+          "            this.studentService.recordMembershipTransition(student, team);",
+          "            // Mutant: no assignment history.",
+          1
+        ],
+        [
+          "src/main/java/team/projectpulse/team/TeamService.java",
+          "            this.studentService.recordMembershipTransition(student, null);",
+          "            // Mutant: no removal history.",
+          1
+        ],
+        [
+          "src/main/java/team/projectpulse/team/TeamService.java",
+          "        this.studentService.recordMembershipTransition(student, student.getTeam());",
+          "        // Mutant: no transfer history.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.removalClosesCurrentIntervalAndPreservesPersistedHistory",
+          "outcome": "failure",
+          "message": "\nexpected: 2023-08-21T04:30 (java.time.LocalDateTime)\n but was: null"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.sectionTransferClosesOldSectionIntervalAndPreservesPersistedHistory",
+          "outcome": "failure",
+          "message": "\nexpected: 2023-08-21T04:30 (java.time.LocalDateTime)\n but was: null"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.reassignmentClosesCurrentIntervalAndPreservesPersistedHistory",
+          "outcome": "failure",
+          "message": "\nexpected: 2023-08-21T04:30 (java.time.LocalDateTime)\n but was: null"
+        }
+      ]
+    },
+    {
+      "name": "M20_rewrite_archived_history",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 90.5,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#reassignmentClosesCurrentIntervalAndPreservesPersistedHistory+removalClosesCurrentIntervalAndPreservesPersistedHistory+sectionTransferClosesOldSectionIntervalAndPreservesPersistedHistory",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "    public void recordMembershipTransition(Student student, Team target) {",
+          "    public void recordMembershipTransition(Student student, Team target) {\n        this.entityManager.createQuery(\"update StudentTeamMembership m set m.leftAt = :stamp where m.student.id = :id and m.leftAt is not null\")\n                .setParameter(\"stamp\", LocalDateTime.of(2023, 8, 19, 0, 0)).setParameter(\"id\", student.getId()).executeUpdate();",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.removalClosesCurrentIntervalAndPreservesPersistedHistory",
+          "outcome": "failure",
+          "message": "\nexpected: {\"id\"=14L, \"joined_at\"=2023-08-01T00:00 (java.time.LocalDateTime), \"left_at\"=2023-08-02T00:00 (java.time.LocalDateTime), \"section_id\"=2, \"student_id\"=4, \"team_id\"=1}\n but was: {\"id\"=14L, \"joined_at\"=2023-08-01T00:00 (java.time.LocalDateTime), \"left_at\"=2023-08-19T00:00 (java.time.LocalDateTime), \"section_id\"=2, \"student_id\"=4, \"team_id\"=1}"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.sectionTransferClosesOldSectionIntervalAndPreservesPersistedHistory",
+          "outcome": "failure",
+          "message": "\nexpected: {\"id\"=15L, \"joined_at\"=2023-08-01T00:00 (java.time.LocalDateTime), \"left_at\"=2023-08-02T00:00 (java.time.LocalDateTime), \"section_id\"=2, \"student_id\"=4, \"team_id\"=1}\n but was: {\"id\"=15L, \"joined_at\"=2023-08-01T00:00 (java.time.LocalDateTime), \"left_at\"=2023-08-19T00:00 (java.time.LocalDateTime), \"section_id\"=2, \"student_id\"=4, \"team_id\"=1}"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.reassignmentClosesCurrentIntervalAndPreservesPersistedHistory",
+          "outcome": "failure",
+          "message": "\nexpected: {\"id\"=19L, \"joined_at\"=2023-08-01T00:00 (java.time.LocalDateTime), \"left_at\"=2023-08-02T00:00 (java.time.LocalDateTime), \"section_id\"=2, \"student_id\"=4, \"team_id\"=1}\n but was: {\"id\"=19L, \"joined_at\"=2023-08-01T00:00 (java.time.LocalDateTime), \"left_at\"=2023-08-19T00:00 (java.time.LocalDateTime), \"section_id\"=2, \"student_id\"=4, \"team_id\"=1}"
+        }
+      ]
+    },
+    {
+      "name": "M21_all_admins_own_all_courses",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 85.6,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#anotherCoursesAdminCannotDeactivate",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentRepository.java",
+          "s.section.course.courseAdmin.id = :callerId",
+          "1 = 1",
+          2
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.anotherCoursesAdminCannotDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        }
+      ]
+    },
+    {
+      "name": "M22_route_predicate_allows_everyone",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 79.6,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#anotherCoursesAdminCannotDeactivate+sameCourseInstructorWithoutSectionAssignmentCannotDeactivate+anotherStudentCannotDeactivate+studentCannotDeactivateSelf+missingLifecycleTargetsFailClosed",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentSecurityService.java",
+          "        if (studentId == null) return false;",
+          "        if (studentId == null) return true;",
+          1
+        ],
+        [
+          "src/main/java/team/projectpulse/student/StudentSecurityService.java",
+          "        if (!admin && !instructor) return false;",
+          "        if (!admin && !instructor) return true;",
+          1
+        ],
+        [
+          "src/main/java/team/projectpulse/student/StudentSecurityService.java",
+          "return this.studentRepository.existsInLifecycleScope(studentId, this.userUtils.getUserId(), admin, instructor);",
+          "return true;",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.missingLifecycleTargetsFailClosed",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.sameCourseInstructorWithoutSectionAssignmentCannotDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.anotherCoursesAdminCannotDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.studentCannotDeactivateSelf",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.anotherStudentCannotDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting value to be false but was true"
+        }
+      ]
+    },
+    {
+      "name": "M23_service_scope_bypassed",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 76.7,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#anotherCoursesAdminCannotDeactivate+sameCourseInstructorWithoutSectionAssignmentCannotDeactivate+anotherStudentCannotDeactivate+studentCannotDeactivateSelf",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentRepository.java",
+          "select s from Student s where s.id = :studentId and\n              ((:admin = true and s.section.course.courseAdmin.id = :callerId) or\n               (:instructor = true and exists\n                 (select i.id from Section sec join sec.instructors i\n                  where sec = s.section and i.id = :callerId)))",
+          "select s from Student s where s.id = :studentId and (:callerId is not null or :admin = true or :instructor = true)",
+          1
+        ],
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "        if (!this.studentRepository.existsInLifecycleScope(studentId, this.userUtils.getUserId(),\n                this.userUtils.hasRole(\"ROLE_admin\"), this.userUtils.hasRole(\"ROLE_instructor\"))) {\n            throw new AccessDeniedException(\"No permission to deactivate this student.\");\n        }",
+          "        // Mutant: service scope recheck omitted.",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.sameCourseInstructorWithoutSectionAssignmentCannotDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.anotherCoursesAdminCannotDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.studentCannotDeactivateSelf",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        },
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.anotherStudentCannotDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting code to raise a throwable."
+        }
+      ]
+    },
+    {
+      "name": "M24_no_service_transaction",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 90.3,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#persistenceFailureRollsBackAccountTeamAndHistoryInAnIndependentTransaction",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "@Transactional\npublic class StudentService",
+          "public class StudentService",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.persistenceFailureRollsBackAccountTeamAndHistoryInAnIndependentTransaction",
+          "outcome": "failure",
+          "message": "\nExpecting a root cause with message:\n  \"Check constraint 'audit_reject_student_deactivation' is violated.\"\nbut message was:\n  \"No active transaction\".\nThrowable that failed the check:\n\norg.springframework.dao.InvalidDataAccessApiUsageException: No active transaction\n at org.springframework.orm.jpa.EntityManagerFactoryUtils.convertJpaAccessExceptionIfPossible(EntityManagerFactoryUtils.java:394)\n at org.springframework.orm.jpa.hibernate.HibernateExceptionTranslator.translateExceptionIfPossible(HibernateExceptionTranslator.java:112)\n at org.springframework.orm.jpa.vendor.HibernateJpaDialect.translateExceptionIfPossible(HibernateJpaDialect.java:199)\n at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.translateExceptionIfPossible(AbstractEntityManagerFactoryBean.java:556)\n at org.springframework.dao.support.ChainedPersistenceExceptionTranslator.translateExceptionIfPossible(Chain"
+        }
+      ]
+    },
+    {
+      "name": "M25_deny_owning_admin",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 87.4,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#owningAdminDeactivatesWithoutDeletingWorkOrCourseSection",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentRepository.java",
+          ":admin = true and s.section.course.courseAdmin.id = :callerId",
+          ":admin = false and s.section.course.courseAdmin.id = :callerId",
+          2
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.owningAdminDeactivatesWithoutDeletingWorkOrCourseSection",
+          "outcome": "failure",
+          "message": "\nExpecting value to be true but was false"
+        }
+      ]
+    },
+    {
+      "name": "M26_deny_assigned_instructor",
+      "status": "KILLED",
+      "returncode": 1,
+      "seconds": 76.8,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#assignedInstructorCanDeactivate",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/main/java/team/projectpulse/student/StudentRepository.java",
+          ":instructor = true and exists",
+          ":instructor = false and exists",
+          2
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.assignedInstructorCanDeactivate",
+          "outcome": "failure",
+          "message": "\nExpecting value to be true but was false"
+        }
+      ]
+    }
+  ],
+  "old_test_controls": [
+    {
+      "name": "C01_old_security_tests_accept_broken_scope",
+      "status": "SURVIVED",
+      "returncode": 0,
+      "seconds": 9.7,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentSecurityServiceTest",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/test/java/team/projectpulse/student/StudentSecurityServiceTest.java",
+          "",
+          "package team.projectpulse.student;\n\nimport org.junit.jupiter.api.Test;\nimport org.junit.jupiter.api.extension.ExtendWith;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.junit.jupiter.MockitoExtension;\nimport team.projectpulse.system.UserUtils;\n\nimport static org.assertj.core.api.Assertions.assertThat;\nimport static org.mockito.Mockito.*;\n\n@ExtendWith(MockitoExtension.class)\nclass StudentSecurityServiceTest {\n    @Mock StudentRepository students;\n    @Mock UserUtils user;\n    @InjectMocks StudentSecurityService security;\n\n    @Test\n    void missingTargetFailsClosed() {\n        assertThat(security.mayManageLifecycle(null)).isFalse();\n        verifyNoInteractions(students, user);\n    }\n\n    @Test\n    void studentCannotManageLifecycleEvenForSelf() {\n        assertThat(security.mayManageLifecycle(10)).isFalse();\n        verifyNoInteractions(students);\n    }\n\n    @Test\n    void adminStillNeedsPersistedCourseOrCourseSectionScope() {\n        when(user.hasRole(\"ROLE_admin\")).thenReturn(true);\n        when(user.hasRole(\"ROLE_instructor\")).thenReturn(false);\n        when(user.getUserId()).thenReturn(7);\n        when(students.existsInLifecycleScope(10, 7, true, false)).thenReturn(false);\n        assertThat(security.mayManageLifecycle(10)).isFalse();\n    }\n\n    @Test\n    void assignedInstructorIsAdmittedByScopedQuery() {\n        when(user.hasRole(\"ROLE_admin\")).thenReturn(false);\n        when(user.hasRole(\"ROLE_instructor\")).thenReturn(true);\n        when(user.getUserId()).thenReturn(7);\n        when(students.existsInLifecycleScope(10, 7, false, true)).thenReturn(true);\n        assertThat(security.mayManageLifecycle(10)).isTrue();\n    }\n}\n",
+          1
+        ],
+        [
+          "src/main/java/team/projectpulse/student/StudentRepository.java",
+          "s.section.course.courseAdmin.id = :callerId",
+          "1 = 1",
+          2
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentSecurityServiceTest.missingTargetFailsClosed",
+          "outcome": "pass",
+          "message": ""
+        },
+        {
+          "test": "team.projectpulse.student.StudentSecurityServiceTest.studentCannotManageLifecycleEvenForSelf",
+          "outcome": "pass",
+          "message": ""
+        },
+        {
+          "test": "team.projectpulse.student.StudentSecurityServiceTest.assignedInstructorIsAdmittedByScopedQuery",
+          "outcome": "pass",
+          "message": ""
+        },
+        {
+          "test": "team.projectpulse.student.StudentSecurityServiceTest.adminStillNeedsPersistedCourseOrCourseSectionScope",
+          "outcome": "pass",
+          "message": ""
+        }
+      ]
+    },
+    {
+      "name": "C02_old_rollback_test_supplies_transaction",
+      "status": "SURVIVED",
+      "returncode": 0,
+      "seconds": 89.8,
+      "command": [
+        "mvn",
+        "-q",
+        "-Dmaven.gitcommitid.skip=true",
+        "-Dspring.flyway.enabled=false",
+        "-Dtest=StudentLifecyclePersistenceIntegrationTest#persistenceFailureRollsBackAccountTeamAndHistoryInAnIndependentTransaction",
+        "test"
+      ],
+      "changes": [
+        [
+          "src/test/java/team/projectpulse/student/StudentLifecyclePersistenceIntegrationTest.java",
+          "package team.projectpulse.student;\n\nimport jakarta.persistence.EntityManager;\nimport org.junit.jupiter.api.BeforeEach;\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.jdbc.core.JdbcTemplate;\nimport org.springframework.security.access.AccessDeniedException;\nimport org.springframework.security.core.authority.SimpleGrantedAuthority;\nimport org.springframework.security.core.context.SecurityContextHolder;\nimport org.springframework.security.oauth2.jwt.Jwt;\nimport org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;\nimport org.springframework.transaction.PlatformTransactionManager;\nimport org.springframework.transaction.annotation.Propagation;\nimport org.springframework.transaction.annotation.Transactional;\nimport org.springframework.transaction.support.TransactionTemplate;\nimport team.projectpulse.AbstractIntegrationTest;\nimport team.projectpulse.course.Course;\nimport team.projectpulse.course.CourseRepository;\nimport team.projectpulse.instructor.Instructor;\nimport team.projectpulse.instructor.InstructorRepository;\nimport team.projectpulse.section.Section;\nimport team.projectpulse.section.SectionRepository;\nimport team.projectpulse.system.exception.StudentAlreadyDeactivatedException;\nimport team.projectpulse.team.Team;\nimport team.projectpulse.team.TeamRepository;\nimport team.projectpulse.team.TeamService;\n\nimport java.time.Clock;\nimport java.time.LocalDateTime;\nimport java.time.ZoneOffset;\nimport java.util.Arrays;\nimport java.util.List;\nimport java.util.Map;\n\nimport static org.assertj.core.api.Assertions.*;\n\n/** Service-level UC-STU-deactivate-student tests. JWTs supply caller identity, not authentication verification. */\nclass StudentLifecyclePersistenceIntegrationTest extends AbstractIntegrationTest {\n    @Autowired StudentService service;\n    @Autowired StudentSecurityService security;\n    @Autowired StudentRepository students;\n    @Autowired StudentTeamMembershipRepository memberships;\n    @Autowired StudentDeactivationRepository departures;\n    @Autowired InstructorRepository instructors;\n    @Autowired CourseRepository courses;\n    @Autowired SectionRepository sections;\n    @Autowired TeamRepository teams;\n    @Autowired TeamService teamService;\n    @Autowired EntityManager entityManager;\n    @Autowired PlatformTransactionManager transactionManager;\n    @Autowired JdbcTemplate jdbc;\n    @Autowired Clock clock;\n    Student student;\n\n    @BeforeEach\n    void selectStudentAndAuthorizeOwningAdmin() {\n        student = students.findAll().stream().filter(s -> s.getEmail().equals(\"j.smith@abc.edu\")).findFirst().orElseThrow();\n        authorize(student.getSection().getCourse().getCourseAdmin().getId(), \"ROLE_admin\", \"ROLE_instructor\");\n    }\n\n    void authorize(Integer id, String... roles) {\n        Jwt jwt = Jwt.withTokenValue(\"service-test\").header(\"alg\", \"RS256\")\n                .claim(\"userId\", id).subject(\"service-test\").build();\n        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,\n                Arrays.stream(roles).map(SimpleGrantedAuthority::new).toList()));\n    }\n\n    @org.junit.jupiter.api.AfterEach\n    void clearAuthentication() { SecurityContextHolder.clearContext(); }\n\n    record Work(List<Map<String, Object>> activities, List<Map<String, Object>> evaluations,\n                List<Map<String, Object>> ratings) { }\n\n    Work work(Integer id) {\n        return new Work(jdbc.queryForList(\"select * from activity where student_id = ? order by activity_id\", id),\n                jdbc.queryForList(\"select * from peer_evaluation where evaluator_id = ? or evaluatee_id = ? order by peer_evaluation_id\", id, id),\n                jdbc.queryForList(\"select r.* from rating r join peer_evaluation p on r.peer_evaluation_peer_evaluation_id = p.peer_evaluation_id where p.evaluator_id = ? or p.evaluatee_id = ? order by r.rating_id\", id, id));\n    }\n\n    Map<String, Object> account(Integer id) {\n        return jdbc.queryForMap(\"select id, username, first_name, last_name, email, password, roles, section_section_id from peer_evaluation_user where id = ?\", id);\n    }\n\n    List<Map<String, Object>> history(String table, Integer id) {\n        return jdbc.queryForList(\"select * from \" + table + \" where student_id = ? order by id\", id);\n    }\n\n    void assertPersistedDeactivation(Integer id, Integer oldTeamId, Map<String, Object> oldAccount, Work oldWork) {\n        entityManager.flush();\n        entityManager.clear();\n        Student stored = students.findById(id).orElseThrow();\n        assertThat(stored.isEnabled()).isFalse();\n        assertThat(stored.getTeam()).isNull();\n        assertThat(account(id)).isEqualTo(oldAccount);\n        assertThat(work(id)).isEqualTo(oldWork);\n        assertThat(memberships.findByStudentIdAndLeftAtIsNull(id)).isEmpty();\n        assertThat(departures.findByStudentIdOrderByDeactivatedAtAsc(id)).singleElement().satisfies(d -> {\n            assertThat(d.getStudent().getId()).isEqualTo(id);\n            assertThat(d.getSection().getSectionId()).isEqualTo(oldAccount.get(\"section_section_id\"));\n            assertThat(d.getFormerTeam() == null ? null : d.getFormerTeam().getTeamId()).isEqualTo(oldTeamId);\n        });\n    }\n\n    @Test\n    void owningAdminDeactivatesWithoutDeletingWorkOrCourseSection() {\n        Integer id = student.getId();\n        Integer formerTeamId = student.getTeam().getTeamId();\n        Integer ownerId = student.getSection().getCourse().getCourseAdmin().getId();\n        // Course ownership must work independently of instructor assignment.\n        student.getSection().getInstructors().removeIf(i -> i.getId().equals(ownerId));\n        entityManager.flush();\n        authorize(ownerId, \"ROLE_admin\");\n        assertThat(security.mayManageLifecycle(id)).isTrue();\n        var oldAccount = account(id);\n        Work oldWork = work(id);\n        assertThat(oldWork.activities()).isNotEmpty();\n        assertThat(oldWork.evaluations()).isNotEmpty();\n        assertThat(oldWork.ratings()).isNotEmpty();\n        var open = memberships.findByStudentIdAndLeftAtIsNull(id);\n        assertThat(open).hasSize(1);\n        Long intervalId = open.getFirst().getId();\n        LocalDateTime joinedAt = open.getFirst().getJoinedAt();\n        service.deactivateStudent(id);\n        assertPersistedDeactivation(id, formerTeamId, oldAccount, oldWork);\n        var closed = memberships.findById(intervalId).orElseThrow();\n        assertThat(closed.getJoinedAt()).isEqualTo(joinedAt);\n        assertThat(closed.getLeftAt()).isEqualTo(LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));\n        assertThat(closed.getTeam().getTeamId()).isEqualTo(formerTeamId);\n    }\n\n    @Test\n    void assignedInstructorCanDeactivate() {\n        Integer ownerId = student.getSection().getCourse().getCourseAdmin().getId();\n        Integer instructorId = student.getSection().getInstructors().stream()\n                .map(Instructor::getId).filter(id -> !id.equals(ownerId)).findFirst().orElseThrow();\n        authorize(instructorId, \"ROLE_instructor\");\n        assertThat(security.mayManageLifecycle(student.getId())).isTrue();\n        var oldAccount = account(student.getId());\n        Work oldWork = work(student.getId());\n        Integer formerTeamId = student.getTeam().getTeamId();\n        service.deactivateStudent(student.getId());\n        assertPersistedDeactivation(student.getId(), formerTeamId, oldAccount, oldWork);\n    }\n\n    @Test\n    void noTeamDepartureIsStillRecorded() {\n        teamService.removeStudentFromTeam(student.getTeam().getTeamId(), student.getId());\n        entityManager.flush();\n        var oldAccount = account(student.getId());\n        Work oldWork = work(student.getId());\n        assertThat(oldWork.activities()).isNotEmpty();\n        assertThat(oldWork.evaluations()).isNotEmpty();\n        service.deactivateStudent(student.getId());\n        assertPersistedDeactivation(student.getId(), null, oldAccount, oldWork);\n    }\n\n    Instructor actor(String name, String roles) {\n        return instructors.saveAndFlush(new Instructor(name, name, \"Audit\", name + \"@audit.example\", \"hashed\", true, roles));\n    }\n\n    void assertDeniedWithoutChanges(Integer actorId, String... roles) {\n        Integer id = student.getId();\n        authorize(actorId, roles);\n        entityManager.flush();\n        var beforeAccount = jdbc.queryForMap(\"select * from peer_evaluation_user where id = ?\", id);\n        var beforeMemberships = history(\"student_team_membership\", id);\n        var beforeDepartures = history(\"student_deactivation\", id);\n        Work beforeWork = work(id);\n        assertThat(security.mayManageLifecycle(id)).isFalse();\n        assertThatThrownBy(() -> service.deactivateStudent(id)).isInstanceOf(AccessDeniedException.class);\n        entityManager.flush();\n        entityManager.clear();\n        assertThat(jdbc.queryForMap(\"select * from peer_evaluation_user where id = ?\", id)).isEqualTo(beforeAccount);\n        assertThat(history(\"student_team_membership\", id)).isEqualTo(beforeMemberships);\n        assertThat(history(\"student_deactivation\", id)).isEqualTo(beforeDepartures);\n        assertThat(work(id)).isEqualTo(beforeWork);\n    }\n\n    @Test\n    void anotherCoursesAdminCannotDeactivate() {\n        Instructor otherAdmin = actor(\"other-admin\", \"admin instructor\");\n        Course other = new Course(\"Other course\", \"Other admin's course\");\n        other.setCourseAdmin(otherAdmin);\n        courses.saveAndFlush(other);\n        assertDeniedWithoutChanges(otherAdmin.getId(), \"ROLE_admin\", \"ROLE_instructor\");\n    }\n\n    @Test\n    void sameCourseInstructorWithoutSectionAssignmentCannotDeactivate() {\n        Instructor unassigned = actor(\"unassigned\", \"instructor\");\n        student.getSection().getCourse().addInstructor(unassigned);\n        entityManager.flush();\n        assertDeniedWithoutChanges(unassigned.getId(), \"ROLE_instructor\");\n    }\n\n    @Test\n    void anotherStudentCannotDeactivate() {\n        Integer otherId = students.findAll().stream().map(Student::getId)\n                .filter(id -> !id.equals(student.getId())).findFirst().orElseThrow();\n        assertDeniedWithoutChanges(otherId, \"ROLE_student\");\n    }\n\n    @Test\n    void studentCannotDeactivateSelf() {\n        assertDeniedWithoutChanges(student.getId(), \"ROLE_student\");\n    }\n\n    @Test\n    void missingLifecycleTargetsFailClosed() {\n        assertThat(security.mayManageLifecycle(null)).isFalse();\n        assertThat(security.mayManageLifecycle(Integer.MAX_VALUE)).isFalse();\n        assertThatThrownBy(() -> service.deactivateStudent(Integer.MAX_VALUE)).isInstanceOf(AccessDeniedException.class);\n    }\n\n    @Test\n    void secondDeactivationCannotAppendAnotherDeparture() {\n        Integer id = student.getId();\n        service.deactivateStudent(id);\n        entityManager.flush();\n        var beforeAccount = jdbc.queryForMap(\"select * from peer_evaluation_user where id = ?\", id);\n        var beforeMemberships = history(\"student_team_membership\", id);\n        var beforeDepartures = history(\"student_deactivation\", id);\n        assertThatThrownBy(() -> service.deactivateStudent(id)).isInstanceOf(StudentAlreadyDeactivatedException.class);\n        entityManager.flush();\n        entityManager.clear();\n        assertThat(jdbc.queryForMap(\"select * from peer_evaluation_user where id = ?\", id)).isEqualTo(beforeAccount);\n        assertThat(history(\"student_team_membership\", id)).isEqualTo(beforeMemberships);\n        assertThat(history(\"student_deactivation\", id)).isEqualTo(beforeDepartures);\n    }\n\n    @Test\n    @Transactional(propagation = Propagation.NOT_SUPPORTED)\n    void persistenceFailureRollsBackAccountTeamAndHistoryInAnIndependentTransaction() {\n        // Setup/observations use separate transactions; the invocation gets NO test-supplied transaction.\n        var tx = new TransactionTemplate(transactionManager);\n        Integer sectionId = student.getSection().getSectionId();\n        Integer teamId = student.getTeam().getTeamId();\n        Integer id = tx.execute(status -> {\n            Student fixture = new Student(\"rollback-audit\", \"Rollback\", \"Audit\", \"rollback@audit.example\", \"hashed\", true, \"student\");\n            fixture.setSection(sections.findById(sectionId).orElseThrow());\n            teams.findById(teamId).orElseThrow().addStudent(fixture);\n            students.saveAndFlush(fixture);\n            memberships.saveAndFlush(new StudentTeamMembership(fixture, fixture.getTeam(), fixture.getSection(), LocalDateTime.of(2023, 8, 1, 0, 0)));\n            return fixture.getId();\n        });\n        boolean constraintAdded = false;\n        try {\n            var beforeAccount = tx.execute(status -> jdbc.queryForMap(\"select * from peer_evaluation_user where id = ?\", id));\n            var beforeMemberships = tx.execute(status -> history(\"student_team_membership\", id));\n            // A real constraint violation at the account update, after the departure INSERT reached MySQL.\n            jdbc.execute(\"ALTER TABLE peer_evaluation_user ADD CONSTRAINT audit_reject_student_deactivation \"\n                    + \"CHECK (email <> 'rollback@audit.example' OR enabled = 1)\");\n            constraintAdded = true;\n            assertThatThrownBy(() -> service.deactivateStudent(id)).isInstanceOf(RuntimeException.class)\n                    .hasRootCauseMessage(\"Check constraint 'audit_reject_student_deactivation' is violated.\");\n            tx.executeWithoutResult(status -> {\n                assertThat(jdbc.queryForMap(\"select * from peer_evaluation_user where id = ?\", id)).isEqualTo(beforeAccount);\n                assertThat(history(\"student_team_membership\", id)).isEqualTo(beforeMemberships);\n                assertThat(history(\"student_deactivation\", id)).isEmpty();\n            });\n        } finally {\n            if (constraintAdded) jdbc.execute(\"ALTER TABLE peer_evaluation_user DROP CHECK audit_reject_student_deactivation\");\n            tx.executeWithoutResult(status -> {\n                jdbc.update(\"delete from student_deactivation where student_id = ?\", id);\n                jdbc.update(\"delete from student_team_membership where student_id = ?\", id);\n                jdbc.update(\"delete from peer_evaluation_user where id = ?\", id);\n            });\n        }\n    }\n\n    Map<String, Object> archivedMembership() {\n        var past = new StudentTeamMembership(student, student.getTeam(), student.getSection(), LocalDateTime.of(2023, 8, 1, 0, 0));\n        past.close(LocalDateTime.of(2023, 8, 2, 0, 0));\n        memberships.saveAndFlush(past);\n        return jdbc.queryForMap(\"select * from student_team_membership where id = ?\", past.getId());\n    }\n\n    void assertArchiveUnchanged(Map<String, Object> archive) {\n        assertThat(jdbc.queryForMap(\"select * from student_team_membership where id = ?\", archive.get(\"id\"))).isEqualTo(archive);\n    }\n\n    @Test\n    void reassignmentClosesCurrentIntervalAndPreservesPersistedHistory() {\n        var archive = archivedMembership();\n        Long oldInterval = memberships.findByStudentIdAndLeftAtIsNull(student.getId()).getFirst().getId();\n        Team next = new Team(\"Next audit team\", \"Audit\", \"https://audit.example\");\n        next.setSection(student.getSection());\n        teams.saveAndFlush(next);\n        Integer nextId = next.getTeamId();\n        teamService.assignStudentToTeam(nextId, student.getId());\n        entityManager.flush();\n        entityManager.clear();\n        assertThat(students.findById(student.getId()).orElseThrow().getTeam().getTeamId()).isEqualTo(nextId);\n        assertThat(memberships.findById(oldInterval).orElseThrow().getLeftAt()).isEqualTo(LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));\n        assertThat(memberships.findByStudentIdAndLeftAtIsNull(student.getId())).singleElement()\n                .satisfies(m -> assertThat(m.getTeam().getTeamId()).isEqualTo(nextId));\n        assertArchiveUnchanged(archive);\n    }\n\n    @Test\n    void removalClosesCurrentIntervalAndPreservesPersistedHistory() {\n        var archive = archivedMembership();\n        Long oldInterval = memberships.findByStudentIdAndLeftAtIsNull(student.getId()).getFirst().getId();\n        teamService.removeStudentFromTeam(student.getTeam().getTeamId(), student.getId());\n        entityManager.flush();\n        entityManager.clear();\n        assertThat(students.findById(student.getId()).orElseThrow().getTeam()).isNull();\n        assertThat(memberships.findById(oldInterval).orElseThrow().getLeftAt()).isEqualTo(LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));\n        assertThat(memberships.findByStudentIdAndLeftAtIsNull(student.getId())).isEmpty();\n        assertArchiveUnchanged(archive);\n    }\n\n    @Test\n    void sectionTransferClosesOldSectionIntervalAndPreservesPersistedHistory() {\n        var archive = archivedMembership();\n        Integer oldSectionId = student.getSection().getSectionId();\n        Long oldInterval = memberships.findByStudentIdAndLeftAtIsNull(student.getId()).getFirst().getId();\n        Section next = new Section();\n        next.setSectionName(\"Audit destination\");\n        next.setCourse(student.getSection().getCourse());\n        next.addInstructor(student.getSection().getInstructors().iterator().next());\n        sections.saveAndFlush(next);\n        Integer nextId = next.getSectionId();\n        teamService.transferTeamToAnotherSection(student.getTeam().getTeamId(), nextId);\n        entityManager.flush();\n        entityManager.clear();\n        assertThat(students.findById(student.getId()).orElseThrow().getSection().getSectionId()).isEqualTo(nextId);\n        var old = memberships.findById(oldInterval).orElseThrow();\n        assertThat(old.getSection().getSectionId()).isEqualTo(oldSectionId);\n        assertThat(old.getLeftAt()).isEqualTo(LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));\n        assertThat(memberships.findByStudentIdAndLeftAtIsNull(student.getId())).singleElement()\n                .satisfies(m -> assertThat(m.getSection().getSectionId()).isEqualTo(nextId));\n        assertArchiveUnchanged(archive);\n    }\n}\n",
+          "package team.projectpulse.student;\n\nimport jakarta.persistence.EntityManager;\nimport org.junit.jupiter.api.BeforeEach;\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.security.access.AccessDeniedException;\nimport org.springframework.security.core.authority.SimpleGrantedAuthority;\nimport org.springframework.security.core.context.SecurityContextHolder;\nimport org.springframework.security.oauth2.jwt.Jwt;\nimport org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;\nimport org.springframework.test.context.bean.override.mockito.MockitoSpyBean;\nimport org.springframework.transaction.PlatformTransactionManager;\nimport org.springframework.transaction.TransactionDefinition;\nimport org.springframework.transaction.support.TransactionTemplate;\nimport team.projectpulse.AbstractIntegrationTest;\nimport team.projectpulse.evaluation.PeerEvaluationRepository;\nimport team.projectpulse.system.exception.StudentAlreadyDeactivatedException;\n\nimport java.util.Arrays;\n\nimport static org.assertj.core.api.Assertions.*;\nimport static org.mockito.ArgumentMatchers.any;\nimport static org.mockito.Mockito.*;\n\n/** UC-STU-deactivate-student: service transaction and real persistence, before endpoint wiring. */\nclass StudentLifecyclePersistenceIntegrationTest extends AbstractIntegrationTest {\n    @Autowired StudentService service;\n    @MockitoSpyBean StudentRepository students;\n    @Autowired StudentTeamMembershipRepository memberships;\n    @Autowired StudentDeactivationRepository departures;\n    @Autowired PeerEvaluationRepository evaluations;\n    @Autowired EntityManager entityManager;\n    @Autowired PlatformTransactionManager transactionManager;\n    Student student;\n\n    @BeforeEach\n    void selectStudentAndAuthorizeOwningAdmin() {\n        student = students.findAll().stream().filter(s -> s.getEmail().equals(\"j.smith@abc.edu\")).findFirst().orElseThrow();\n        authorize(student.getSection().getCourse().getCourseAdmin().getId(), \"ROLE_admin\", \"ROLE_instructor\");\n    }\n\n    void authorize(Integer id, String... roles) {\n        Jwt jwt = Jwt.withTokenValue(\"service-test\").header(\"alg\", \"RS256\")\n                .claim(\"userId\", id).subject(\"service-test\").build();\n        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt,\n                Arrays.stream(roles).map(SimpleGrantedAuthority::new).toList()));\n    }\n\n    @org.junit.jupiter.api.AfterEach\n    void clearAuthentication() {\n        SecurityContextHolder.clearContext();\n    }\n\n    @Test\n    void owningAdminDeactivatesWithoutDeletingWorkOrCourseSection() {\n        Integer id = student.getId();\n        Integer sectionId = student.getSection().getSectionId();\n        Integer formerTeamId = student.getTeam().getTeamId();\n        long evaluationsBefore = evaluations.count();\n        service.deactivateStudent(id);\n        entityManager.flush();\n        entityManager.clear();\n        Student stored = students.findById(id).orElseThrow();\n        assertThat(stored.isEnabled()).isFalse();\n        assertThat(stored.getTeam()).isNull();\n        assertThat(stored.getSection().getSectionId()).isEqualTo(sectionId);\n        assertThat(evaluations.count()).isEqualTo(evaluationsBefore);\n        assertThat(memberships.findByStudentIdAndLeftAtIsNull(id)).isEmpty();\n        assertThat(departures.findByStudentIdOrderByDeactivatedAtAsc(id)).singleElement()\n                .satisfies(d -> assertThat(d.getFormerTeam().getTeamId()).isEqualTo(formerTeamId));\n    }\n\n    @Test\n    void assignedInstructorCanDeactivate() {\n        Integer instructorId = student.getSection().getInstructors().iterator().next().getId();\n        authorize(instructorId, \"ROLE_instructor\");\n        assertThat(service.deactivateStudent(student.getId()).isEnabled()).isFalse();\n    }\n\n    @Test\n    void noTeamDepartureIsStillRecorded() {\n        student.getTeam().removeStudent(student);\n        entityManager.flush();\n        service.deactivateStudent(student.getId());\n        entityManager.flush();\n        assertThat(departures.findByStudentIdOrderByDeactivatedAtAsc(student.getId())).singleElement()\n                .satisfies(d -> assertThat(d.getFormerTeam()).isNull());\n    }\n\n    @Test\n    void unrelatedAdminAndInstructorAndSelfCannotMutateStudent() {\n        Integer id = student.getId();\n        Integer teamId = student.getTeam().getTeamId();\n        for (String role : new String[]{\"ROLE_admin\", \"ROLE_instructor\", \"ROLE_student\"}) {\n            authorize(role.equals(\"ROLE_student\") ? id : Integer.MAX_VALUE, role);\n            assertThatThrownBy(() -> service.deactivateStudent(id)).isInstanceOf(AccessDeniedException.class);\n        }\n        assertThat(student.isEnabled()).isTrue();\n        assertThat(student.getTeam().getTeamId()).isEqualTo(teamId);\n        assertThat(departures.findByStudentIdOrderByDeactivatedAtAsc(id)).isEmpty();\n    }\n\n    @Test\n    void secondDeactivationCannotAppendAnotherDeparture() {\n        service.deactivateStudent(student.getId());\n        assertThatThrownBy(() -> service.deactivateStudent(student.getId())).isInstanceOf(StudentAlreadyDeactivatedException.class);\n        assertThat(departures.findByStudentIdOrderByDeactivatedAtAsc(student.getId())).hasSize(1);\n    }\n\n    @Test\n    void persistenceFailureRollsBackAccountTeamAndHistoryInAnIndependentTransaction() {\n        Integer id = student.getId();\n        Integer teamId = student.getTeam().getTeamId();\n        var tx = new TransactionTemplate(transactionManager);\n        tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);\n        long before = tx.execute(status -> departures.count());\n        doThrow(new IllegalStateException(\"Simulated student persistence failure\")).when(students).save(any(Student.class));\n        try {\n            assertThatThrownBy(() -> tx.execute(status -> service.deactivateStudent(id)))\n                    .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class).hasRootCauseMessage(\"Simulated student persistence failure\");\n        } finally {\n            reset(students);\n        }\n        tx.executeWithoutResult(status -> {\n            Student stored = students.findById(id).orElseThrow();\n            assertThat(stored.isEnabled()).isTrue();\n            assertThat(stored.getTeam().getTeamId()).isEqualTo(teamId);\n            assertThat(departures.count()).isEqualTo(before);\n            assertThat(memberships.findByStudentIdAndLeftAtIsNull(id)).isNotEmpty();\n        });\n    }\n}\n",
+          1
+        ],
+        [
+          "src/main/java/team/projectpulse/student/StudentService.java",
+          "@Transactional\npublic class StudentService",
+          "public class StudentService",
+          1
+        ]
+      ],
+      "tests": [
+        {
+          "test": "team.projectpulse.student.StudentLifecyclePersistenceIntegrationTest.persistenceFailureRollsBackAccountTeamAndHistoryInAnIndependentTransaction",
+          "outcome": "pass",
+          "message": ""
+        }
+      ]
+    }
+  ]
+}

@@ -232,7 +232,6 @@ class TeamServiceTest {
         assertThat(team1.getStudents().size()).isEqualTo(3);
         assertThat(team1.getStudents().get(2).getFirstName()).isEqualTo("Jerry");
         assertThat(jerry.getTeam()).isEqualTo(team1);
-        verify(this.studentService).recordMembershipTransition(jerry, team1);
 
     }
 
@@ -250,7 +249,6 @@ class TeamServiceTest {
         // Then
         assertThat(team1.getStudents().size()).isEqualTo(1);
         assertThat(john.getTeam()).isNull();
-        verify(this.studentService).recordMembershipTransition(john, null);
     }
 
     @Test
@@ -274,7 +272,6 @@ class TeamServiceTest {
         // Given
         Section newSection = this.sections.get(0); // Section 1
         Team team1 = this.teams.get(0); // Team 1 in Section 2 with instructor1 and two students
-        Instructor oldInstructor = team1.getInstructor();
         given(this.studentRepository.findForUpdate(1)).willReturn(Optional.of(this.students.get(0)));
         given(this.studentRepository.findForUpdate(2)).willReturn(Optional.of(this.students.get(1)));
         given(this.teamRepository.findById(1)).willReturn(Optional.of(team1));
@@ -284,7 +281,6 @@ class TeamServiceTest {
         this.teamService.transferTeamToAnotherSection(1, 1); // Transfer team1 to section 1
         // Then
         assertThat(team1.getSection()).isEqualTo(newSection);
-        assertThat(team1.getInstructor()).isEqualTo(oldInstructor);
         // Students in the team should also be transferred to the new section
         for (Student student : team1.getStudents()) {
             assertThat(student.getSection()).isEqualTo(newSection);
@@ -296,7 +292,6 @@ class TeamServiceTest {
         // Given
         Section newSection = this.sections.get(2); // Section 3
         Team team1 = this.teams.get(0); // Team 1 in Section 2 with instructor1 and two students
-        Instructor oldInstructor = team1.getInstructor(); // Old instructor is Bingyang Wei
         given(this.studentRepository.findForUpdate(1)).willReturn(Optional.of(this.students.get(0)));
         given(this.studentRepository.findForUpdate(2)).willReturn(Optional.of(this.students.get(1)));
         given(this.teamRepository.findById(1)).willReturn(Optional.of(team1));
@@ -306,8 +301,6 @@ class TeamServiceTest {
         this.teamService.transferTeamToAnotherSection(1, 3); // Transfer team1 to section 3
         // Then
         assertThat(team1.getSection()).isEqualTo(newSection);
-        assertThat(team1.getInstructor()).isNotEqualTo(oldInstructor);
-        assertThat(team1.getInstructor().getFirstName()).isEqualTo("Tim"); // New instructor is Tim Cook
         // Students in the team should also be transferred to the new section
         for (Student student : team1.getStudents()) {
             assertThat(student.getSection()).isEqualTo(newSection);

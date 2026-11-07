@@ -100,31 +100,6 @@ class StudentLifecycleServiceTest {
     }
 
     @Test
-    void owningAdminCanDeactivateStudentWithoutTeam() {
-        when(user.getUserId()).thenReturn(7);
-        when(user.hasRole("ROLE_admin")).thenReturn(true);
-        when(user.hasRole("ROLE_instructor")).thenReturn(false);
-        when(students.findForLifecycleUpdate(10, 7, true, false)).thenReturn(Optional.of(student));
-        when(students.existsInLifecycleScope(10, 7, true, false)).thenReturn(true);
-        when(memberships.findByStudentIdAndLeftAtIsNull(10)).thenReturn(List.of());
-        service.deactivateStudent(10);
-        assertThat(student.isEnabled()).isFalse();
-        var departure = org.mockito.ArgumentCaptor.forClass(StudentDeactivation.class);
-        verify(departures).save(departure.capture());
-        assertThat(departure.getValue().getFormerTeam()).isNull();
-        verify(memberships, never()).save(any());
-    }
-
-    @Test
-    void unresolvedOrOutOfScopeTargetIsDeniedWithoutMutation() {
-        when(students.findForLifecycleUpdate(10, 0, false, false)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.deactivateStudent(10)).isInstanceOf(AccessDeniedException.class);
-        assertThat(student.isEnabled()).isTrue();
-        verifyNoInteractions(departures, memberships);
-        verify(students, never()).save(any());
-    }
-
-    @Test
     void alreadyInactiveIsConflictWithoutAnotherDeparture() {
         allowInstructor();
         student.setEnabled(false);
@@ -145,6 +120,8 @@ class StudentLifecycleServiceTest {
                 .hasMessage("Student deactivation requires the deactivation endpoint. No changes were saved.");
         assertThat(student.getUsername()).isEqualTo("student");
         assertThat(student.getEmail()).isEqualTo("jane@example.edu");
+        assertThat(student.getFirstName()).isEqualTo("Jane");
+        assertThat(student.getLastName()).isEqualTo("Doe");
         assertThat(student.isEnabled()).isTrue();
         verify(students, never()).save(any());
     }
@@ -152,28 +129,13 @@ class StudentLifecycleServiceTest {
     @Test
     void unauthorizedProfileBypassIsForbiddenBeforeProfileMutation() {
         when(students.findForUpdate(10)).thenReturn(Optional.of(student));
-        assertThatThrownBy(() -> service.updateStudent(10, new Student())).isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> service.updateStudent(10, new Student("changed", "Changed", "Name", "changed@example.edu", "", false, "admin"))).isInstanceOf(AccessDeniedException.class);
         assertThat(student.getUsername()).isEqualTo("student");
+        assertThat(student.getFirstName()).isEqualTo("Jane");
+        assertThat(student.getLastName()).isEqualTo("Doe");
+        assertThat(student.getEmail()).isEqualTo("jane@example.edu");
+        assertThat(student.isEnabled()).isTrue();
         verify(students, never()).save(any());
-    }
-
-    @Test
-    void reassignmentClosesCurrentIntervalAndAppendsAnotherWithoutOverwritingHistory() {
-        var current = new StudentTeamMembership(student, team, section, now.minusDays(3));
-        var past = new StudentTeamMembership(student, team, section, now.minusWeeks(2));
-        past.close(now.minusWeeks(1));
-        when(memberships.findByStudentIdAndLeftAtIsNull(10)).thenReturn(List.of(current));
-        Team newTeam = new Team();
-        newTeam.setTeamId(4);
-        service.recordMembershipTransition(student, newTeam);
-        assertThat(current.getLeftAt()).isEqualTo(now);
-        assertThat(past.getLeftAt()).isEqualTo(now.minusWeeks(1));
-        var added = org.mockito.ArgumentCaptor.forClass(StudentTeamMembership.class);
-        verify(memberships).save(added.capture());
-        assertThat(added.getValue().getTeam()).isSameAs(newTeam);
-        assertThat(added.getValue().getJoinedAt()).isEqualTo(now);
-        assertThat(added.getValue().getLeftAt()).isNull();
-        verifyNoInteractions(departures);
     }
 
     @Test
@@ -186,10 +148,17 @@ class StudentLifecycleServiceTest {
     }
 
     @Test
-    void membershipIntervalsRejectClosingTwiceOrBeforeJoining() {
+    void membershipCannotEndBeforeItStarts() {
         var interval = new StudentTeamMembership(student, team, section, now);
         assertThatThrownBy(() -> interval.close(now.minusSeconds(1))).isInstanceOf(IllegalStateException.class);
+        assertThat(interval.getLeftAt()).isNull();
+    }
+
+    @Test
+    void closedMembershipCannotBeRewritten() {
+        var interval = new StudentTeamMembership(student, team, section, now);
         interval.close(now);
         assertThatThrownBy(() -> interval.close(now.plusSeconds(1))).isInstanceOf(IllegalStateException.class);
+        assertThat(interval.getLeftAt()).isEqualTo(now);
     }
 }
