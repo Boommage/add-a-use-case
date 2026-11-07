@@ -1487,6 +1487,8 @@ Details:
 
 - Team and submission consequences: Deactivation removes any current team assignment (BR-student-lifecycle). While inactive, the student owes neither weekly activity reports nor peer evaluations and receives no reminders for those submissions; her former teammates no longer owe a peer evaluation of her under BR-submission-owed.
 
+- Peer evaluation consequences: Former teammates may submit and edit evaluations of the student for the week immediately preceding deactivation until its normal submission window closes (BR-student-lifecycle, BR-evaluation-submission-window, BR-evaluation-editable-until-close). For the week of deactivation and later weeks while she remains inactive, her name remains visible and marked inactive in the evaluation entry view, with no evaluation controls available. Course section reports retain her historical evaluations for the weeks before deactivation, and authorized instructors may still open those historical details; current team membership does not determine historical report inclusion.
+
 **Related Use Cases:** UC-STU-delete-student: Delete a student; UC-STU-reactivate-student: Reactivate a student
 **Assumptions:**
 **Open Issues:**
@@ -2240,7 +2242,7 @@ Report generating algorithm: N/A
 **Associated Information:**
 
 Details:
-- Every team member MUST be evaluated.
+- Every active team member MUST be evaluated. The previous-week exception for a deactivated former teammate follows BR-student-lifecycle: submission and editing remain permitted until that week's normal window closes. For the week of deactivation and later weeks while she remains inactive, show her name as inactive without evaluation controls.
 - Scores MUST be integers.
 
 Example (each team member, self included, is evaluated on every rubric criterion):
@@ -2370,6 +2372,8 @@ An example of the generated report:
 | Lily Fisher | … | … | … | … |
 
 The report shall show who did not turn in the peer evaluation for that week, meaning the students who owe it (BR-submission-owed).
+
+Historical inclusion after deactivation: Retain the student and her recorded peer evaluations in reports for weeks before deactivation, even after she is removed from her team. Authorized instructors may still open those historical details. Deactivation does not create evaluation results for the week of deactivation or later weeks while she remains inactive.
 
 Report generating algorithm: How to compute the peer evaluation grade for a student? Each student receives multiple peer evaluations from her teammates every week. First, obtain the peer evaluations received by a student for that week. For each peer evaluation, compute a total score by adding up the individual criterion scores. Then compute the average of the total scores across the peer evaluations. For example, John Doe receives two peer evaluations from Tim Smith and Lily Fisher, respectively. Tim Smith gives the following scores based on the rubric: 10, 9, 10, 9, 10, 10. So the total score given by Tim is 58. Lily Fisher gives the following scores based on the rubric: 5, 5, 10, 10, 10, 10. So the total score given by Tim is 50. The grade that John Doe receives that week is (58 + 50) / 2 = 54.
 
