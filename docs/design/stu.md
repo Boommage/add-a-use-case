@@ -3,7 +3,7 @@
 > Realizes: [UC-STU-deactivate-student](../requirements/use-cases.md#uc-stu-deactivate-student-the-course-admininstructor-deactivates-a-student).
 > Depends on FRs: FR-SEC-authentication, FR-SEC-authorization, FR-SEC-deny-unauthorized, FR-SEC-active-account in the [SRS](../requirements/software-requirements-specification.md).
 > Governing rules: BR-student-lifecycle, BR-section-scoped-access, BR-team-admin-only, BR-submission-owed, BR-evaluation-submission-window, BR-evaluation-editable-until-close in [business rules](../requirements/business-rules.md).
-> Status: proposed design-of-record; conversation acceptance permits writing, but independent review and merge remain the design gate. No implementation is claimed.
+> Status: approved design-of-record, merged in PR #2 (merge commit `709a119`). Ready for implementation; no implementation is claimed.
 
 ## Overview
 
@@ -237,7 +237,7 @@ Use the injected application Clock and WeekKeys for calendar time/cutoffs, inclu
 
 Reuse the Result/error handlers, DTO converters, UserUtils, role/scope managers, BCrypt/login mechanism, WeekKeys and profile clocks, Flyway, and notification submission-status logic. This design does not introduce document locks, email workflows, or a second authentication system.
 
-The shared active-account validator changes the architecture-of-record's Authentication description: after normal JWT verification, current account status is checked before protected access. This is a platform convention delta for independent review; that document still describes existing behavior and is not silently rewritten by this STU draft. Existing JWT-revocation debt is broader than inactive-account denial and must not be marked resolved wholesale.
+The shared active-account validator changes the architecture-of-record's Authentication description: after normal JWT verification, current account status is checked before protected access. This is a platform convention delta for independent review; that document still describes existing behavior; update it when implementing this approved STU design. Existing JWT-revocation debt is broader than inactive-account denial and must not be marked resolved wholesale.
 
 ## Tests
 
@@ -266,4 +266,4 @@ The shared active-account validator changes the architecture-of-record's Authent
 - **Legacy history cannot be invented.** Current schema has no reliable assignment/departure dates. Backfill only evidenced history; seed current memberships at a documented migration boundary. Full historical rows for legacy weeks with no evaluation or membership evidence require an authoritative import before claiming that behavior verified. Current membership is not proof of past participation.
 - **Historical null scores.** The requirement separates row inclusion from available results; implementation must not fabricate a zero grade for no evaluations. Exact empty-state wording is a UI detail.
 - **Repeated lifecycle semantics.** Preserve every departure and membership interval. Historical report inclusion must remain stable after reactivation. This design does not redesign the reactivation use case or permit a generic PUT to bypass deactivation.
-- **Review gate.** Architecture authentication delta and the membership-history expansion require reviewer attention. A fresh independent questions test and merged PR are still required before implementation. User retains commit responsibility.
+- **Design gate completed.** This design was merged in PR #2 (merge commit `709a119`). The architecture authentication delta and membership-history expansion remain implementation reviewer focus. User retains commit responsibility.
